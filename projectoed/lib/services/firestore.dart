@@ -1,41 +1,45 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FirestoreService {
+  // Referencia a la colección 'notes' en Firestore
+  final CollectionReference notes =
+      FirebaseFirestore.instance.collection('notes');
 
-
-  //get collection of  notes
-final CollectionReference notes=
-FirebaseFirestore.instance.collection('notes');
-
-  //create: add a new note
-
-  Future <void> addNote(String note) {
-    return notes.add ({
-      'note':note,
-      'timestamp': Timestamp.now(),
+  // Crear: agregar una nueva nota con la información completa
+  Future<void> addNote(Map<String, dynamic> data) {
+    return notes.add({
+      'nombre': data['nombre'], // Nombre
+      'apellido': data['apellido'], // Apellido
+      'codigo': data['codigo'], // Código de empleado
+      'zona': data['zona'], // Zona seleccionada
+      'direccion': data['direccion'], // Dirección
+      'hora': data['hora'], // Hora seleccionada
+      'timestamp': Timestamp.now(), // Marca de tiempo
     });
   }
-   
-  //read: get notes from database
-Stream <QuerySnapshot > getNotesStream(){
-  final notesStream =
-   notes.orderBy( 'timestamp', descending: true ).snapshots();
 
-   return notesStream;
-}
-  
-   
-  // Update: update notes given doc id
-  Future <void> updateNote (String docID, String newNote){
+  // Leer: obtener el flujo de notas desde la base de datos
+  Stream<QuerySnapshot> getNotesStream() {
+    final notesStream =
+        notes.orderBy('timestamp', descending: true).snapshots(); // Ordenar por timestamp
+    return notesStream;
+  }
+
+  // Actualizar: actualizar una nota dado su ID
+  Future<void> updateNote(String docID, Map<String, dynamic> newData) {
     return notes.doc(docID).update({
-      'note':newNote,
-      'timestamp':Timestamp.now(),
-
+      'nombre': newData['nombre'], // Actualizar nombre
+      'apellido': newData['apellido'], // Actualizar apellido
+      'codigo': newData['codigo'], // Actualizar código de empleado
+      'zona': newData['zona'], // Actualizar zona
+      'direccion': newData['direccion'], // Actualizar dirección
+      'hora': newData['hora'], // Actualizar hora
+      'timestamp': Timestamp.now(), // Actualizar marca de tiempo
     });
   }
-  // delete: delete notes given a doc 
-  Future <void> deleteNote (String docID) {
+
+  // Eliminar: eliminar una nota dado su ID
+  Future<void> deleteNote(String docID) {
     return notes.doc(docID).delete();
-    
   }
 }
