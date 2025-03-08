@@ -1,8 +1,10 @@
 import 'package:projectoed/firebase_options.dart';
-import 'package:projectoed/pages/home_page.dart';
+import 'package:projectoed/screens/home_page.dart';
 
  import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:projectoed/presentation/router/main_router.dart';
+import 'package:projectoed/presentation/styles/main_theme.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,9 +17,11 @@ class MyApp extends       StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp (
+    return   MaterialApp.router (
+      routerConfig: mainRouter,
+      theme: mainTheme,
+
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
-    );
+     );
   }
 }
