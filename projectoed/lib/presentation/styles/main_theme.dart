@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 final mainTheme = ThemeData(
-  primarySwatch: Colors.blue,
+  primarySwatch: Colors.red,
   visualDensity: VisualDensity.adaptivePlatformDensity,
 
 );
