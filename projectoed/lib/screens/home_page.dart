@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart'; // Importa GoRouter
 import 'package:projectoed/services/firestore.dart';
-import 'package:projectoed/screens/buses_screen.dart'; // Importa la pantalla de buses
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,11 +30,36 @@ class _HomePageState extends State<HomePage> {
     "Zona Oeste": "assets/images/bus4.jpg",
   };
 
-  void openNoteBox({String? docID}) {
+  // Pila para manejar las acciones de agregar, eliminar y editar
+  final List<Map<String, dynamic>> pilaAcciones = [];
+
+  // Función para agregar una nueva nota
+  void openNoteBox({String? docID, Map<String, dynamic>? existingData}) {
+    if (existingData != null) {
+      // Si estamos editando un registro, inicializamos los campos con los datos existentes
+      nombreController.text = existingData['nombre'];
+      apellidoController.text = existingData['apellido'];
+      codigoController.text = existingData['codigo'];
+      selectedZona = existingData['zona'];
+      direccionController.text = existingData['direccion'];
+      selectedHora = TimeOfDay(
+        hour: int.parse(existingData['hora'].split(":")[0]),
+        minute: int.parse(existingData['hora'].split(":")[1]),
+      );
+    } else {
+      // Limpiar los campos si estamos agregando un nuevo registro
+      nombreController.clear();
+      apellidoController.clear();
+      codigoController.clear();
+      direccionController.clear();
+      selectedZona = null;
+      selectedHora = null;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Agregar Información"),
+        title: const Text("Agregar/Editar Información"),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -82,11 +106,23 @@ class _HomePageState extends State<HomePage> {
                 "direccion": direccionController.text,
                 "hora": "${selectedHora!.hour}:${selectedHora!.minute}",
               };
-              if (docID == null) {
-                firestoreService.addNote(data);
-              } else {
+
+              // Si estamos editando, guardamos el estado previo en la pila antes de editar
+              if (docID != null) {
+                pilaAcciones.add({
+                  'accion': 'editar',
+                  'docID': docID,
+                  'previousData': existingData,
+                });
                 firestoreService.updateNote(docID, data);
+              } else {
+                firestoreService.addNote(data);
+                pilaAcciones.add({
+                  'accion': 'agregar',
+                  'data': data,
+                });
               }
+
               nombreController.clear();
               apellidoController.clear();
               codigoController.clear();
@@ -102,6 +138,28 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  // Función para deshacer la última acción
+  void deshacerAccion() {
+    if (pilaAcciones.isNotEmpty) {
+      setState(() {
+        Map<String, dynamic> ultimaAccion = pilaAcciones.removeLast();  // Obtener y eliminar la última acción
+
+        if (ultimaAccion['accion'] == 'agregar') {
+          // Deshacer agregar (eliminar el último pasajero agregado)
+          firestoreService.deleteNote(ultimaAccion['data']['docID']);
+        } else if (ultimaAccion['accion'] == 'eliminar') {
+          // Deshacer eliminar (recuperar los datos eliminados, necesitamos almacenarlos antes)
+          firestoreService.addNote(ultimaAccion['data']);
+        } else if (ultimaAccion['accion'] == 'editar') {
+          // Deshacer edición (restaurar los datos previos antes de la edición)
+          firestoreService.updateNote(ultimaAccion['docID'], ultimaAccion['previousData']);
+        }
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No hay acciones para deshacer.")));
+    }
   }
 
   @override
@@ -145,8 +203,14 @@ class _HomePageState extends State<HomePage> {
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  IconButton(onPressed: () => openNoteBox(docID: docID), icon: const Icon(Icons.settings)),
-                                  IconButton(onPressed: () => firestoreService.deleteNote(docID), icon: const Icon(Icons.delete)),
+                                  IconButton(onPressed: () => openNoteBox(docID: docID, existingData: data), icon: const Icon(Icons.settings)),
+                                  IconButton(onPressed: () {
+                                    firestoreService.deleteNote(docID);
+                                    pilaAcciones.add({
+                                      'accion': 'eliminar',
+                                      'data': data,
+                                    });
+                                  }, icon: const Icon(Icons.delete)),
                                 ],
                               ),
                             ),
@@ -163,9 +227,19 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: openNoteBox,
-        child: const Icon(Icons.add),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: deshacerAccion,
+            child: const Icon(Icons.undo),
+          ),
+          const SizedBox(width: 10),
+          FloatingActionButton(
+            onPressed: openNoteBox,
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }
