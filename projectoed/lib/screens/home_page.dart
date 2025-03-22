@@ -1,6 +1,6 @@
-// home_page.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart'; // Importa GoRouter
 import 'package:projectoed/services/firestore.dart';
 import 'package:projectoed/screens/buses_screen.dart'; // Importa la pantalla de buses
 
@@ -22,6 +22,14 @@ class _HomePageState extends State<HomePage> {
   String? selectedZona;
   TimeOfDay? selectedHora;
   final List<String> zonas = ["Zona Sur", "Zona Este", "Zona Norte", "Zona Oeste"];
+
+  // Mapa para asignar imágenes a cada zona
+  final Map<String, String> imagenesPorZona = {
+    "Zona Sur": "assets/images/bus1.jpg",
+    "Zona Este": "assets/images/bus2.jpg",
+    "Zona Norte": "assets/images/bus3.jpg",
+    "Zona Oeste": "assets/images/bus4.jpg",
+  };
 
   void openNoteBox({String? docID}) {
     showDialog(
@@ -105,13 +113,8 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.directions_bus),
             onPressed: () {
-              // Navegar a la pantalla de buses
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BusesScreen(firestoreService: firestoreService),
-                ),
-              );
+              // Navegar a la pantalla de buses usando GoRouter
+              context.go('/buses', extra: firestoreService);
             },
           ),
         ],
@@ -131,9 +134,12 @@ class _HomePageState extends State<HomePage> {
                         children: notesList.map((document) {
                           String docID = document.id;
                           Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+                          final String imagenZona = imagenesPorZona[data['zona']] ?? 'assets/images/default_bus.jpg';
+
                           return Card(
                             margin: const EdgeInsets.all(8.0),
                             child: ListTile(
+                              leading: Image.asset(imagenZona, width: 50, height: 50, fit: BoxFit.cover),
                               title: Text("${data['nombre']} ${data['apellido']}"),
                               subtitle: Text("Código: ${data['codigo']}\nZona: ${data['zona']}\nDirección: ${data['direccion']}\nHora: ${data['hora']}"),
                               trailing: Row(
